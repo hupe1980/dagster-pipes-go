@@ -1,5 +1,5 @@
 # dagster-pipes-go
-![Build Status](https://github.com/hupe1980/dagster-pipes-go/workflows/build/badge.svg) 
+![Build Status](https://github.com/hupe1980/dagster-pipes-go/workflows/Build/badge.svg) 
 [![Go Reference](https://pkg.go.dev/badge/github.com/hupe1980/dagster-pipes-go.svg)](https://pkg.go.dev/github.com/hupe1980/dagster-pipes-go)
 [![goreportcard](https://goreportcard.com/badge/github.com/hupe1980/dagster-pipes-go)](https://goreportcard.com/report/github.com/hupe1980/dagster-pipes-go)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
