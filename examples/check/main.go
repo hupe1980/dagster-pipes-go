@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	fmt.Println("Hello, World!")
+	fmt.Println("Start!")
 
 	session, err := dagsterpipes.New()
 	if err != nil {
@@ -33,4 +33,6 @@ func main() {
 	}); err != nil {
 		log.Fatalf("Error running dagster pipes session: %v", err)
 	}
+
+	fmt.Println("End!")
 }
