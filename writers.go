@@ -10,9 +10,9 @@ type MessageWriter interface {
 	// Returns the created MessageChannel or an error if initialization fails.
 	Open(params *MessagesParams) (MessageChannel, error)
 
-	// GetOpenedExtras retrieves any additional metadata or information
+	// OpenedExtras retrieves any additional metadata or information
 	// associated with the opened message channel.
-	GetOpenedExtras() map[string]any
+	OpenedExtras() map[string]any
 }
 
 // DefaultMessageWriter is the default implementation of the MessageWriter interface.
@@ -30,8 +30,8 @@ func (mw *DefaultMessageWriter) Open(params *MessagesParams) (MessageChannel, er
 	return nil, errors.New("no path provided")
 }
 
-// GetOpenedExtras provides additional metadata for the opened message channel.
+// OpenedExtras provides additional metadata for the opened message channel.
 // In the default implementation, this method returns an empty map.
-func (mw *DefaultMessageWriter) GetOpenedExtras() map[string]any {
+func (mw *DefaultMessageWriter) OpenedExtras() map[string]any {
 	return map[string]any{}
 }

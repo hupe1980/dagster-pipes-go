@@ -66,7 +66,7 @@ func NewContext(optFns ...func(o *Options)) (*Context, error) {
 		closed:           false,
 	}
 
-	if err := pc.writeMessage(MethodOpened, &Opened{Extras: opts.MessageWriter.GetOpenedExtras()}); err != nil {
+	if err := pc.writeMessage(MethodOpened, &Opened{Extras: opts.MessageWriter.OpenedExtras()}); err != nil {
 		return nil, err
 	}
 
