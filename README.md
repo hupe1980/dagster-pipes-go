@@ -22,6 +22,41 @@ To install the library, use `go get`:
 go get github.com/hupe1980/dagster-pipes-go
 ```
 
+## How to use
+```golang
+package main
+
+import (
+	"log"
+
+	dagsterpipes "github.com/hupe1980/dagster-pipes-go"
+)
+
+func main() {
+	session, err := dagsterpipes.New()
+	if err != nil {
+		log.Fatalf("Error creating dagster pipes session: %v", err)
+	}
+	defer session.Close()
+
+	if err := session.Run(func(context *dagsterpipes.Context) error {
+		if err := context.ReportAssetMaterialization(&dagsterpipes.AssetMaterialization{
+			AssetKey:    "asset",
+			DataVersion: "1.0",
+			Metadata: map[string]any{
+				"foo": "bar",
+			},
+		}); err != nil {
+			return err
+		}
+
+		return nil
+	}); err != nil {
+		log.Fatalf("Error running dagster pipes session: %v", err)
+	}
+}
+```
+
 ## Contributing
 Contributions are welcome! If you find bugs or want to suggest features, please open an issue or submit a pull request.
 
