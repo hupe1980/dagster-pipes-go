@@ -1,4 +1,8 @@
 # dagster-pipes-go
+![Build Status](https://github.com/hupe1980/dagster-pipes-go/workflows/build/badge.svg) 
+[![Go Reference](https://pkg.go.dev/badge/github.com/hupe1980/dagster-pipes-go.svg)](https://pkg.go.dev/github.com/hupe1980/dagster-pipes-go)
+[![goreportcard](https://goreportcard.com/badge/github.com/hupe1980/dagster-pipes-go)](https://goreportcard.com/report/github.com/hupe1980/dagster-pipes-go)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 `dagster-pipes-go` is a Go library for integrating with [Dagster Pipes](https://docs.dagster.io/concepts/pipes), enabling seamless communication between external processes and Dagster workflows. It provides a set of utilities for managing context, logging, reporting asset materializations, and more.
 

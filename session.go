@@ -14,7 +14,7 @@ type Session struct {
 // It accepts a variadic list of option functions to configure the context.
 // Returns a pointer to the created Session or an error if the context fails to open.
 func New(optFns ...func(o *Options)) (*Session, error) {
-	context, err := Open(optFns...)
+	context, err := NewContext(optFns...)
 	if err != nil {
 		return nil, err
 	}

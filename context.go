@@ -22,9 +22,9 @@ type Context struct {
 	closed           bool           // Indicates whether the context has been closed.
 }
 
-// Open initializes a new Context using the provided options functions.
+// NewContext initializes a new Context using the provided options functions.
 // It validates the Dagster Pipes process and sets up the context, messages, and communication channels.
-func Open(optFns ...func(o *Options)) (*Context, error) {
+func NewContext(optFns ...func(o *Options)) (*Context, error) {
 	opts := Options{
 		ParamsLoader:  &EnvVarParamsLoader{},
 		ContextLoader: &DefaultContextLoader{},
