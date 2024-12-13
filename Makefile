@@ -22,7 +22,7 @@ test:
 .PHONY: integration-test
 ## test: Runs python test with dagster
 integration-test:
-	@pytest
+	@poetry run pytest
 
 .PHONY: help
 ## help: Prints this help message

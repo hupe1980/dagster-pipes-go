@@ -46,9 +46,6 @@ jobs:
       - name: Install dependencies
         run: poetry install --no-root
 
-      - name: Create a virtual environment
-        run: poetry shell
-
       - name: Run Integration Tests
         run: make integration-test
 
