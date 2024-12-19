@@ -7,27 +7,27 @@ import (
 )
 
 // Options defines configuration for creating a new Context.
-type Options struct {
-	ParamsLoader  ParamsLoader  // Loader for context parameters.
-	ContextLoader ContextLoader // Loader for the execution context.
-	MessageWriter MessageWriter // Writer for communication messages.
+type Options[T any] struct {
+	ParamsLoader  ParamsLoader[T]  // Loader for context parameters.
+	ContextLoader ContextLoader[T] // Loader for the execution context.
+	MessageWriter MessageWriter    // Writer for communication messages.
 }
 
 // Context represents a Dagster Pipes execution context.
-type Context struct {
-	data             *ContextData   // Contextual data for the process.
-	messageChannel   MessageChannel // Channel to communicate messages.
-	materializedKeys map[string]any // Tracks materialized assets to prevent duplicates.
-	exception        *Exception     // Holds the exception if one is reported.
-	closed           bool           // Indicates whether the context has been closed.
+type Context[T any] struct {
+	data             *ContextData[T] // Contextual data for the process.
+	messageChannel   MessageChannel  // Channel to communicate messages.
+	materializedKeys map[string]any  // Tracks materialized assets to prevent duplicates.
+	exception        *Exception      // Holds the exception if one is reported.
+	closed           bool            // Indicates whether the context has been closed.
 }
 
 // NewContext initializes a new Context using the provided options functions.
 // It validates the Dagster Pipes process and sets up the context, messages, and communication channels.
-func NewContext(optFns ...func(o *Options)) (*Context, error) {
-	opts := Options{
-		ParamsLoader:  &EnvVarParamsLoader{},
-		ContextLoader: &DefaultContextLoader{},
+func NewContext[T any](optFns ...func(o *Options[T])) (*Context[T], error) {
+	opts := Options[T]{
+		ParamsLoader:  &EnvVarParamsLoader[T]{},
+		ContextLoader: &DefaultContextLoader[T]{},
 		MessageWriter: &DefaultMessageWriter{},
 	}
 
@@ -59,7 +59,7 @@ func NewContext(optFns ...func(o *Options)) (*Context, error) {
 		return nil, err
 	}
 
-	pc := &Context{
+	pc := &Context[T]{
 		data:             data,
 		messageChannel:   messageChannel,
 		materializedKeys: make(map[string]any),
@@ -74,12 +74,22 @@ func NewContext(optFns ...func(o *Options)) (*Context, error) {
 }
 
 // RunID retrieves the run identifier from the context data.
-func (c *Context) RunID() string {
+func (c *Context[T]) RunID() string {
 	return c.data.RunID
 }
 
+// Extras retrieves additional data associated with the context.
+func (c *Context[T]) Extras() T {
+	return c.data.Extras
+}
+
+// AssetKeys retrieves the list of asset keys associated with the context.
+func (c *Context[T]) AssetKeys() []string {
+	return c.data.AssetKeys
+}
+
 // Close closes the context and sends a closed message.
-func (c *Context) Close() error {
+func (c *Context[T]) Close() error {
 	if c.closed {
 		return nil
 	}
@@ -94,12 +104,12 @@ func (c *Context) Close() error {
 }
 
 // IsClosed checks if the context is closed.
-func (c *Context) IsClosed() bool {
+func (c *Context[T]) IsClosed() bool {
 	return c.closed
 }
 
 // ReportAssetMaterialization reports an asset materialization event.
-func (c *Context) ReportAssetMaterialization(materialization *AssetMaterialization) error {
+func (c *Context[T]) ReportAssetMaterialization(materialization *AssetMaterialization) error {
 	assetKey := materialization.AssetKey
 
 	if _, exists := c.materializedKeys[assetKey]; exists {
@@ -123,23 +133,23 @@ func (c *Context) ReportAssetMaterialization(materialization *AssetMaterializati
 }
 
 // ReportAssetCheck reports an asset check event.
-func (c *Context) ReportAssetCheck(check *AssetCheck) error {
+func (c *Context[T]) ReportAssetCheck(check *AssetCheck) error {
 	return c.writeMessage(MethodReportAssetCheck, check)
 }
 
 // ReportCustomMessage reports a custom message.
-func (c *Context) ReportCustomMessage(msg *CustomMessage) error {
+func (c *Context[T]) ReportCustomMessage(msg *CustomMessage) error {
 	return c.writeMessage(MethodReportCustomMessage, msg)
 }
 
 // ReportException records an exception in the context.
-func (c *Context) ReportException(err error) error {
+func (c *Context[T]) ReportException(err error) error {
 	c.exception = NewException(err, true)
 	return nil
 }
 
 // resolveOptionallyPassedAssetKey resolves an optionally passed asset key.
-func (c *Context) resolveOptionallyPassedAssetKey(assetKey string) (string, error) {
+func (c *Context[T]) resolveOptionallyPassedAssetKey(assetKey string) (string, error) {
 	if !c.data.HasAssetKeys() {
 		return "", errors.New("no asset keys were passed")
 	}
@@ -160,7 +170,7 @@ func (c *Context) resolveOptionallyPassedAssetKey(assetKey string) (string, erro
 }
 
 // writeMessage sends a message to the message channel.
-func (c *Context) writeMessage(method Method, params any) error {
+func (c *Context[T]) writeMessage(method Method, params any) error {
 	if c.IsClosed() {
 		return errors.New("cannot send message after pipes context is closed")
 	}

@@ -10,13 +10,13 @@ import (
 func main() {
 	fmt.Println("Start!")
 
-	session, err := dagsterpipes.New()
+	session, err := dagsterpipes.New[map[string]any]()
 	if err != nil {
 		log.Fatalf("Error creating dagster pipes session: %v", err)
 	}
 	defer session.Close()
 
-	if err := session.Run(func(context *dagsterpipes.Context) error {
+	if err := session.Run(func(context *dagsterpipes.Context[map[string]any]) error {
 		if err := context.ReportAssetCheck(&dagsterpipes.AssetCheck{
 			AssetKey:  "materialize_subprocess",
 			CheckName: "check_subprocess",
