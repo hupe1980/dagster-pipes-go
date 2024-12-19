@@ -63,7 +63,7 @@ type AssetMaterialization struct {
 func (a AssetMaterialization) MarshalJSON() ([]byte, error) {
 	normalized := struct {
 		AssetKey    string                   `json:"asset_key"`
-		DataVersion string                   `json:"data_version,omitempty"`
+		DataVersion string                   `json:"data_version"`
 		Metadata    map[string]MetadataValue `json:"metadata"`
 	}{
 		AssetKey:    a.AssetKey,
