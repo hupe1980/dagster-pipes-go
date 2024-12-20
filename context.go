@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"slices"
+	"sync"
 )
 
 // Options defines configuration options for creating a new Context.
@@ -24,6 +25,7 @@ type Context[T any] struct {
 	exception        *Exception      // Holds the exception if one is reported.
 	closed           bool            // Indicates whether the context has been closed.
 	logger           *slog.Logger    // Logger instance for logging messages.
+	mu               sync.RWMutex    // Mutex to protect shared state
 }
 
 // NewContext initializes a new Context using the provided configuration functions.
@@ -97,21 +99,29 @@ func (c *Context[T]) AssetKeys() []string {
 // Close closes the context and sends a "closed" message.
 // Ensures the context cannot be used after it is closed.
 func (c *Context[T]) Close() error {
+	c.mu.RLock()
 	if c.closed {
+		c.mu.RUnlock()
 		return nil
 	}
+	c.mu.RUnlock()
 
 	if err := c.writeMessage(MethodClosed, &Closed{Exception: c.exception}); err != nil {
 		return err
 	}
 
+	c.mu.Lock()
 	c.closed = true
+	c.mu.Unlock()
 
 	return nil
 }
 
 // IsClosed checks if the context is closed.
 func (c *Context[T]) IsClosed() bool {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
 	return c.closed
 }
 
@@ -120,9 +130,12 @@ func (c *Context[T]) IsClosed() bool {
 func (c *Context[T]) ReportAssetMaterialization(materialization *AssetMaterialization) error {
 	assetKey := materialization.AssetKey
 
+	c.mu.RLock()
 	if _, exists := c.materializedKeys[assetKey]; exists {
+		c.mu.RUnlock()
 		return fmt.Errorf("asset with key %s has already been materialized", assetKey)
 	}
+	c.mu.RUnlock()
 
 	assetKey, err := c.resolveOptionallyPassedAssetKey(assetKey)
 	if err != nil {
@@ -135,7 +148,9 @@ func (c *Context[T]) ReportAssetMaterialization(materialization *AssetMaterializ
 		return err
 	}
 
+	c.mu.Lock()
 	c.materializedKeys[assetKey] = struct{}{}
+	c.mu.Unlock()
 
 	return nil
 }
@@ -152,7 +167,11 @@ func (c *Context[T]) ReportCustomMessage(msg *CustomMessage) error {
 
 // ReportException records an exception in the context for later reporting.
 func (c *Context[T]) ReportException(err error) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	c.exception = NewException(err, true)
+
 	return nil
 }
 
