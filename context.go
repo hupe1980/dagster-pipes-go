@@ -1,16 +1,19 @@
 package dagsterpipes
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"slices"
 )
 
-// Options defines configuration for creating a new Context.
+// Options defines configuration options for creating a new Context.
 type Options[T any] struct {
 	ParamsLoader  ParamsLoader[T]  // Loader for context parameters.
 	ContextLoader ContextLoader[T] // Loader for the execution context.
 	MessageWriter MessageWriter    // Writer for communication messages.
+	Logger        *slog.Logger     // Logger instance for logging messages.
 }
 
 // Context represents a Dagster Pipes execution context.
@@ -20,15 +23,17 @@ type Context[T any] struct {
 	materializedKeys map[string]any  // Tracks materialized assets to prevent duplicates.
 	exception        *Exception      // Holds the exception if one is reported.
 	closed           bool            // Indicates whether the context has been closed.
+	logger           *slog.Logger    // Logger instance for logging messages.
 }
 
-// NewContext initializes a new Context using the provided options functions.
-// It validates the Dagster Pipes process and sets up the context, messages, and communication channels.
+// NewContext initializes a new Context using the provided configuration functions.
+// Validates the Dagster Pipes process and sets up context, messages, and communication channels.
 func NewContext[T any](optFns ...func(o *Options[T])) (*Context[T], error) {
 	opts := Options[T]{
 		ParamsLoader:  &EnvVarParamsLoader[T]{},
 		ContextLoader: &DefaultContextLoader[T]{},
 		MessageWriter: &DefaultMessageWriter{},
+		Logger:        slog.Default(),
 	}
 
 	for _, fn := range optFns {
@@ -64,6 +69,7 @@ func NewContext[T any](optFns ...func(o *Options[T])) (*Context[T], error) {
 		messageChannel:   messageChannel,
 		materializedKeys: make(map[string]any),
 		closed:           false,
+		logger:           opts.Logger,
 	}
 
 	if err := pc.writeMessage(MethodOpened, &Opened{Extras: opts.MessageWriter.OpenedExtras()}); err != nil {
@@ -88,7 +94,8 @@ func (c *Context[T]) AssetKeys() []string {
 	return c.data.AssetKeys
 }
 
-// Close closes the context and sends a closed message.
+// Close closes the context and sends a "closed" message.
+// Ensures the context cannot be used after it is closed.
 func (c *Context[T]) Close() error {
 	if c.closed {
 		return nil
@@ -109,6 +116,7 @@ func (c *Context[T]) IsClosed() bool {
 }
 
 // ReportAssetMaterialization reports an asset materialization event.
+// Ensures duplicate materializations for the same asset key are prevented.
 func (c *Context[T]) ReportAssetMaterialization(materialization *AssetMaterialization) error {
 	assetKey := materialization.AssetKey
 
@@ -132,23 +140,60 @@ func (c *Context[T]) ReportAssetMaterialization(materialization *AssetMaterializ
 	return nil
 }
 
-// ReportAssetCheck reports an asset check event.
+// ReportAssetCheck sends a report for an asset check event.
 func (c *Context[T]) ReportAssetCheck(check *AssetCheck) error {
 	return c.writeMessage(MethodReportAssetCheck, check)
 }
 
-// ReportCustomMessage reports a custom message.
+// ReportCustomMessage sends a custom message through the context.
 func (c *Context[T]) ReportCustomMessage(msg *CustomMessage) error {
 	return c.writeMessage(MethodReportCustomMessage, msg)
 }
 
-// ReportException records an exception in the context.
+// ReportException records an exception in the context for later reporting.
 func (c *Context[T]) ReportException(err error) error {
 	c.exception = NewException(err, true)
 	return nil
 }
 
-// resolveOptionallyPassedAssetKey resolves an optionally passed asset key.
+// LogDebug logs a debug-level message using the context's logger.
+// Also sends the log message to the message channel.
+func (c *Context[T]) LogDebug(message string) error {
+	return c.log(slog.LevelDebug, message)
+}
+
+// LogInfo logs an informational message using the context's logger.
+// Also sends the log message to the message channel.
+func (c *Context[T]) LogInfo(message string) error {
+	return c.log(slog.LevelInfo, message)
+}
+
+// LogWarn logs a warning-level message using the context's logger.
+// Also sends the log message to the message channel.
+func (c *Context[T]) LogWarn(message string) error {
+	return c.log(slog.LevelWarn, message)
+}
+
+// LogError logs an error-level message using the context's logger.
+// Also sends the log message to the message channel.
+func (c *Context[T]) LogError(message string) error {
+	return c.log(slog.LevelError, message)
+}
+
+// log sends a log message at the specified level using the context's logger.
+// Writes the same message to the message channel for external processing.
+func (c *Context[T]) log(level slog.Level, message string) error {
+	c.logger.Log(context.Background(), level, message)
+
+	if err := c.writeMessage(MethodLog, &Log{Message: message, Level: level.String()}); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// resolveOptionallyPassedAssetKey resolves the provided asset key based on context data.
+// Handles validation and deduplication of asset keys.
 func (c *Context[T]) resolveOptionallyPassedAssetKey(assetKey string) (string, error) {
 	if !c.data.HasAssetKeys() {
 		return "", errors.New("no asset keys were passed")
@@ -170,6 +215,7 @@ func (c *Context[T]) resolveOptionallyPassedAssetKey(assetKey string) (string, e
 }
 
 // writeMessage sends a message to the message channel.
+// Ensures the context is not closed before sending the message.
 func (c *Context[T]) writeMessage(method Method, params any) error {
 	if c.IsClosed() {
 		return errors.New("cannot send message after pipes context is closed")
