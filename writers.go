@@ -23,7 +23,7 @@ type DefaultMessageWriter struct{}
 // Returns the created MessageChannel or an error if the path is missing or unsupported.
 func (mw *DefaultMessageWriter) Open(params *MessagesParams) (MessageChannel, error) {
 	if params.Path != "" {
-		return NewFileMessageWriterChannel(params.Path), nil
+		return NewFileMessageWriterChannel(params.Path)
 	}
 
 	// TODO: Extend support for additional message writer types.

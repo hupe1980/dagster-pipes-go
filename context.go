@@ -111,8 +111,12 @@ func (c *Context[T]) Close() error {
 	}
 
 	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	c.closed = true
-	c.mu.Unlock()
+	if err := c.messageChannel.Close(); err != nil {
+		return err
+	}
 
 	return nil
 }
