@@ -31,8 +31,8 @@ const (
 )
 
 // Opened represents the parameters for the "opened" method.
-type Opened struct {
-	Extras map[string]any `json:"extras"` // Additional metadata for the opened method.
+type Opened[T any] struct {
+	Extras T `json:"extras"` // Additional metadata for the opened method.
 }
 
 // Closed represents the parameters for the "closed" method.

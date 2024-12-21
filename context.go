@@ -74,7 +74,7 @@ func NewContext[T any](optFns ...func(o *Options[T])) (*Context[T], error) {
 		logger:           opts.Logger,
 	}
 
-	if err := pc.writeMessage(MethodOpened, &Opened{Extras: opts.MessageWriter.OpenedExtras()}); err != nil {
+	if err := pc.writeMessage(MethodOpened, &Opened[map[string]any]{Extras: opts.MessageWriter.OpenedExtras()}); err != nil {
 		return nil, err
 	}
 
@@ -111,9 +111,9 @@ func (c *Context[T]) Close() error {
 	}
 
 	c.mu.Lock()
-	defer c.mu.Unlock()
-
 	c.closed = true
+	c.mu.Unlock()
+
 	if err := c.messageChannel.Close(); err != nil {
 		return err
 	}
